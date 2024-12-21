@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Superhero Viewer</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            min-height: 100vh;
+            background: #000;
+            color: #fff;
+            font-family: 'Orbitron', sans-serif;
+            overflow-x: hidden;
+        }
+
+        .marvel-theme {
+            --primary-color: #ff0000;
+            --glow-color: rgba(255, 0, 0, 0.2);
+            --hover-color: rgba(255, 0, 0, 0.1);
+            --bg-color: rgba(30, 0, 0, 0.5);
+        }
+
+        .dc-theme {
+            --primary-color: #0055ff;
+            --glow-color: rgba(0, 85, 255, 0.2);
+            --hover-color: rgba(0, 85, 255, 0.1);
+            --bg-color: rgba(0, 20, 40, 0.5);
+        }
+
+        .title {
+            text-align: center;
+            padding: 1rem;
+            font-size: 3rem;
+            color: #fff;
+            text-shadow: 0 0 10px var(--primary-color), 0 0 20px var(--primary-color), 0 0 30px var(--primary-color);
+            animation: glow 2s ease-in-out infinite alternate;
+        }
+
+        .universe-switch {
+            text-align: center;
+            margin-bottom: 1rem;
+        }
+
+        .universe-btn {
+            padding: 0.5rem 2rem;
+            margin: 0 0.5rem;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.2rem;
+            border: 2px solid var(--primary-color);
+            background: transparent;
+            color: #fff;
+            cursor: pointer;
+            border-radius: 5px;
+            transition: all 0.3s ease;
+        }
+
+        .universe-btn.active {
+            background: var(--primary-color);
+            box-shadow: 0 0 20px var(--glow-color);
+        }
+
+        .search-container {
+            padding: 1rem;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 0.5rem;
+            font-family: 'Orbitron', sans-serif;
+            background: rgba(0, 0, 0, 0.3);
+            border: 2px solid var(--primary-color);
+            color: #fff;
+            border-radius: 5px;
+        }
+
+        .container {
+            display: flex;
+            gap: 2rem;
+            padding: 2rem;
+            height: calc(100vh - 12rem);
+        }
+
+        .sidebar {
+            flex: 1;
+            max-width: 300px;
+            background: var(--bg-color);
+            border-right: 2px solid var(--primary-color);
+            padding: 1rem;
+            border-radius: 10px;
+            box-shadow: 0 0 20px var(--glow-color);
+            height: 100%;
+            overflow-y: auto;
+        }
+
+        .character-list {
+            list-style: none;
+        }
+
+        .character-item {
+            padding: 1rem;
+            margin: 0.5rem 0;
+            cursor: pointer;
+            border: 1px solid var(--primary-color);
+            border-radius: 5px;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .character-item:hover {
+            transform: scale(1.05) translateX(10px);
+            box-shadow: 0 0 20px var(--glow-color);
+            background: var(--hover-color);
+        }
+
+        .main-content {
+            flex: 3;
+            display: flex;
+            flex-direction: column;
+            gap: 2rem;
+            background: var(--bg-color);
+            border-radius: 10px;
+            padding: 2rem;
+            box-shadow: 0 0 30px var(--glow-color);
+            overflow-y: auto;
+        }
+
+        .image-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            max-height: 100%;
+            width: 100%;
+        }
+
+        .character-image {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+            opacity: 0;
+            transition: opacity 0.5s ease;
+        }
+
+        .character-image.active {
+            opacity: 1;
+        }
+
+        @keyframes glow {
+            from {
+                text-shadow: 0 0 10px var(--primary-color), 0 0 20px var(--primary-color), 0 0 30px var(--primary-color);
+            }
+            to {
+                text-shadow: 0 0 20px var(--primary-color), 0 0 30px var(--primary-color), 0 0 40px var(--primary-color);
+            }
+        }
+    </style>
+</head>
+<body class="marvel-theme">
+    <h1 class="title">SUPERHERO VIEWER</h1>
+    <div class="universe-switch">
+        <button class="universe-btn active" data-universe="marvel">MARVEL</button>
+        <button class="universe-btn" data-universe="dc">DC</button>
+    </div>
+    <div class="container">
+        <div class="sidebar">
+            <div class="search-container">
+                <input type="text" class="search-input" placeholder="Search heroes...">
+            </div>
+            <ul class="character-list" id="characterList">
+                <!-- List items will be generated by JavaScript -->
+            </ul>
+        </div>
+        <div class="main-content">
+            <div class="image-container">
+                <img id="characterImage" class="character-image active" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7">
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const marvelUrl = 'https://sheets.livepolls.app/api/spreadsheets/230e5499-d7c4-44d9-b252-18e0b83e2695/Marvel';
+        const dcUrl = 'https://sheets.livepolls.app/api/spreadsheets/230e5499-d7c4-44d9-b252-18e0b83e2695/DC';
+        
+        let currentCharacters = [];
+        const characterList = document.getElementById('characterList');
+        const characterImage = document.getElementById('characterImage');
+        const searchInput = document.querySelector('.search-input');
+        const universeButtons = document.querySelectorAll('.universe-btn');
+
+        async function fetchCharacters(url) {
+            try {
+                const response = await fetch(url);
+                const data = await response.json();
+                return data.data.sort((a, b) => {
+                    const nameA = a.CRYPTONYM.toLowerCase();
+                    const nameB = b.CRYPTONYM.toLowerCase();
+                    return nameA.localeCompare(nameB);
+                });
+            } catch (error) {
+                console.error('Error fetching characters:', error);
+                return [];
+            }
+        }
+
+        function displayCharacters(characters) {
+            characterList.innerHTML = '';
+            characters.forEach(character => {
+                const li = document.createElement('li');
+                li.className = 'character-item';
+                li.textContent = character.NAME ? 
+                    `${character.CRYPTONYM} (${character.NAME})` : 
+                    character.CRYPTONYM;
+                li.addEventListener('click', () => {
+                    characterImage.src = character.IMAGE;
+                });
+                characterList.appendChild(li);
+            });
+        }
+
+        function filterCharacters(searchTerm) {
+            const filtered = currentCharacters.filter(character => {
+                const fullName = character.NAME ? 
+                    `${character.CRYPTONYM} ${character.NAME}` : 
+                    character.CRYPTONYM;
+                return fullName.toLowerCase().includes(searchTerm.toLowerCase());
+            });
+            displayCharacters(filtered);
+        }
+
+        async function switchUniverse(universe) {
+            document.body.className = `${universe}-theme`;
+            const url = universe === 'marvel' ? marvelUrl : dcUrl;
+            currentCharacters = await fetchCharacters(url);
+            displayCharacters(currentCharacters);
+            searchInput.value = '';
+        }
+
+        // Event Listeners
+        searchInput.addEventListener('input', (e) => {
+            filterCharacters(e.target.value);
+        });
+
+        universeButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                universeButtons.forEach(btn => btn.classList.remove('active'));
+                button.classList.add('active');
+                switchUniverse(button.dataset.universe);
+            });
+        });
+
+        // Initial load
+        switchUniverse('marvel');
+    </script>
+</body>
+</html>
